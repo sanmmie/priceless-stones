@@ -28,109 +28,109 @@
         :root {
             --primary: #FFFFFF;
             --secondary: #F8F9FA;
+            --surface: #FFFFFF;
             --accent: #2C3E50;
-            --text: #333333;
-            --light-text: #777777;
-            --transition: all 0.3s ease;
-            --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            --radius: 8px;
+            --accent-light: #34495E;
+            --accent-dark: #1A252F;
+            --gold: #D4A574;
+            --gold-light: #E8D5C4;
+            --text: #2D3436;
+            --text-secondary: #636E72;
+            --light-text: #9B9B9B;
+            --border: #E8E8E8;
+            --transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-lg: 20px;
+            --space-xs: 0.5rem;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 2.5rem;
+            --space-xl: 4rem;
+            --font-body: 'Poppins', sans-serif;
+            --font-heading: 'Cormorant Garamond', serif;
         }
 
         /* Reset and Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior:smooth; scroll-padding-top:80px; }
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: var(--font-body);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.7;
             overflow-x: hidden;
             background-color: var(--primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+
+        /* Scroll Progress */
+        .scroll-progress { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--gold),var(--accent)); z-index:9999; transition:width .1s linear; width:0; }
 
         h1, h2, h3, h4, h5, h6 {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: var(--font-heading);
             font-weight: 600;
-            line-height: 1.3;
-            margin-bottom: 1rem;
+            line-height: 1.2;
+            margin-bottom: var(--space-sm);
+            color: var(--accent-dark);
+            letter-spacing: -0.01em;
         }
 
-        h1 {
-            font-size: 3.5rem;
-        }
+        h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); }
+        h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); text-align:center; margin-bottom: var(--space-xl); position:relative; }
+        h2:after { content:''; position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); width:60px; height:3px; background:linear-gradient(90deg,var(--gold),var(--accent)); border-radius:2px; }
 
-        h2 {
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 3rem;
-            position: relative;
-        }
+        p { margin-bottom: var(--space-md); color: var(--text-secondary); }
 
-        h2:after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 3px;
-            background-color: var(--accent);
-        }
+        .container { width:90%; max-width:1200px; margin:0 auto; padding:0 15px; }
 
-        p {
-            margin-bottom: 1.5rem;
-            color: var(--light-text);
-        }
+        section { padding: var(--space-xl) 0; position:relative; }
 
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-
-        section {
-            padding: 80px 0;
-        }
+        ::selection { background: var(--gold); color: #fff; }
 
         .btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: var(--accent);
+            display: inline-flex; align-items:center; justify-content:center; gap:8px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
             color: var(--primary);
             border: none;
             border-radius: var(--radius);
-            font-family: 'Poppins', sans-serif;
+            font-family: var(--font-body);
             font-weight: 500;
+            font-size: 0.95rem;
             text-decoration: none;
             cursor: pointer;
             transition: var(--transition);
             text-align: center;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
         }
-
-        .btn:hover {
-            background-color: #1a252f;
-            transform: translateY(-3px);
-            box-shadow: var(--shadow);
-        }
-
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
         .btn-secondary {
-            background-color: transparent;
+            background: transparent;
             border: 2px solid var(--accent);
             color: var(--accent);
+            box-shadow: none;
         }
-
         .btn-secondary:hover {
-            background-color: var(--accent);
+            background: var(--accent);
             color: var(--primary);
         }
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            background-color: #25D366;
+        }
+        .submit-btn:hover { background-color: #128C7E; }
+        .submit-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+        .submit-btn.loading { pointer-events:none; opacity:0.8; }
+        .spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
 
         /* Navigation */
         header {
@@ -217,7 +217,7 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1558769132-cb1a71c8ba0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1926&q=80') no-repeat center center/cover;
+            background: linear-gradient(135deg, rgba(44,62,80,0.85), rgba(26,37,47,0.75)), url('https://images.unsplash.com/photo-1558769132-cb1a71c8ba0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1926&q=80') no-repeat center center/cover;
             color: var(--primary);
             text-align: center;
         }
@@ -229,18 +229,21 @@
         }
 
         .hero h1 {
-            font-size: 4rem;
+            font-size: clamp(2.5rem, 6vw, 4rem);
             margin-bottom: 1.5rem;
             opacity: 0;
             animation: fadeInUp 1s ease forwards;
+            color: #fff;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.2);
         }
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: clamp(1rem, 2vw, 1.2rem);
             margin-bottom: 2.5rem;
             opacity: 0;
             animation: fadeInUp 1s ease 0.3s forwards;
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255,255,255,0.9);
+            font-weight: 300;
         }
 
         .hero-btns {
@@ -248,9 +251,7 @@
             animation: fadeInUp 1s ease 0.6s forwards;
         }
 
-        .hero-btns .btn {
-            margin: 0 10px;
-        }
+        .hero-btns .btn { margin: 0 10px; }
 
         /* The Art Section */
         .art {
@@ -264,80 +265,50 @@
         }
 
         /* Gallery Section */
-        .gallery {
-            padding-bottom: 100px;
-        }
+        .gallery { padding-bottom: 100px; }
 
         .gallery-filters {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 40px;
+            display: flex; justify-content:center; flex-wrap:wrap; margin-bottom:40px; gap:8px;
         }
 
         .filter-btn {
-            background: none;
-            border: none;
-            padding: 8px 20px;
-            margin: 5px 10px;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 500;
-            color: var(--light-text);
-            cursor: pointer;
-            transition: var(--transition);
-            border-radius: 30px;
+            background: none; border:1px solid var(--border); padding:10px 24px; margin:5px;
+            font-family: var(--font-body); font-weight:500; font-size:0.9rem;
+            color: var(--text-secondary); cursor:pointer; transition:var(--transition);
+            border-radius:30px;
         }
-
         .filter-btn.active, .filter-btn:hover {
-            background-color: var(--accent);
-            color: var(--primary);
+            background:var(--accent); color:var(--primary); border-color:var(--accent); box-shadow:var(--shadow-sm);
         }
 
         .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
+            display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:25px;
         }
 
         .gallery-item {
-            position: relative;
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            height: 300px;
-            transition: var(--transition);
+            position:relative; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm);
+            height:340px; transition:var(--transition); background:var(--secondary);
         }
-
-        .gallery-item:hover {
-            transform: translateY(-10px);
-        }
-
+        .gallery-item.reveal { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+        .gallery-item.reveal.visible { opacity:1; transform:translateY(0); }
+        .gallery-item:hover { transform:translateY(-8px); box-shadow:var(--shadow-lg); }
         .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: var(--transition);
+            width:100%; height:100%; object-fit:cover; transition:var(--transition);
         }
-
-        .gallery-item:hover img {
-            transform: scale(1.05);
-        }
+        .gallery-item:hover img { transform:scale(1.08); }
 
         .item-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 20px;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-            color: var(--primary);
-            transform: translateY(100%);
-            transition: var(--transition);
+            position:absolute; bottom:0; left:0; width:100%; padding:24px;
+            background:linear-gradient(transparent 30%, rgba(0,0,0,0.8));
+            color:var(--primary); transform:translateY(100%); transition:var(--transition);
         }
-
-        .gallery-item:hover .item-overlay {
-            transform: translateY(0);
+        .gallery-item:hover .item-overlay { transform:translateY(0); }
+        .item-overlay .add-to-cart-btn {
+            margin-top:10px; padding:8px 20px; background:var(--gold); color:#fff; border:none;
+            border-radius:6px; font-size:0.85rem; cursor:pointer; font-family:var(--font-body);
+            transition:var(--transition); font-weight:500;
         }
+        .item-overlay .add-to-cart-btn:hover { background:var(--gold-light); transform:scale(1.05); }
 
         .skip-link {
             position: absolute;
@@ -1010,19 +981,35 @@
         .cart-badge.visible { display:flex; }
 
         /* Product Catalog */
-        .catalog { padding-bottom:60px; }
-        .catalog-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:25px; margin-top:40px; }
-        .product-card { background:#fff; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); transition:var(--transition); position:relative; }
-        .product-card:hover { transform:translateY(-5px); }
-        .product-img { width:100%; height:220px; object-fit:cover; }
+        .catalog { padding-top:20px; }
+        .catalog-grid {
+            display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:25px; margin-top:40px;
+        }
+        .product-card {
+            background:var(--surface); border-radius:var(--radius); overflow:hidden;
+            box-shadow:var(--shadow-sm); transition:var(--transition); position:relative;
+            border:1px solid var(--border);
+        }
+        .product-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-lg); border-color:transparent; }
+        .product-img { width:100%; height:220px; object-fit:cover; transition:var(--transition); }
+        .product-card:hover .product-img { transform:scale(1.03); }
         .product-body { padding:20px; }
-        .product-tag { display:inline-block; padding:3px 10px; background:var(--accent); color:#fff; font-size:0.75rem; border-radius:20px; margin-bottom:8px; }
-        .product-name { font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:600; margin-bottom:6px; }
-        .product-desc { font-size:0.85rem; color:var(--light-text); margin-bottom:12px; }
+        .product-tag {
+            display:inline-block; padding:4px 12px; background:var(--gold-light); color:var(--accent-dark);
+            font-size:0.75rem; border-radius:20px; margin-bottom:10px; font-weight:500;
+        }
+        .product-name {
+            font-family:var(--font-heading); font-size:1.3rem; font-weight:600; margin-bottom:6px; color:var(--accent-dark);
+        }
+        .product-desc { font-size:0.85rem; color:var(--light-text); margin-bottom:14px; }
         .product-bottom { display:flex; justify-content:space-between; align-items:center; }
-        .product-price { font-size:1.1rem; font-weight:600; color:var(--accent); }
-        .add-cart-btn { padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:0.85rem; cursor:pointer; transition:var(--transition); font-family:'Poppins',sans-serif; }
-        .add-cart-btn:hover { background:#1a252f; }
+        .product-price { font-size:1.15rem; font-weight:600; color:var(--accent); }
+        .add-cart-btn {
+            padding:10px 20px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm);
+            font-size:0.85rem; cursor:pointer; transition:var(--transition); font-family:var(--font-body); font-weight:500;
+        }
+        .add-cart-btn:hover { background:var(--accent-dark); transform:scale(1.05); }
+        .add-cart-btn.added { background:var(--gold); pointer-events:none; }
         .add-cart-btn.added { background:var(--success); }
 
         /* Multi-step Form */
@@ -1043,7 +1030,8 @@
         @media(prefers-reduced-motion:reduce){ *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}html{scroll-behavior:auto}.reveal{opacity:1;transform:none} }
     </style>
 </head>
-<body>
+<div class="scroll-progress" id="scrollProgress"></div>
+    <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Navigation -->
     <header id="header">
@@ -1388,6 +1376,18 @@
     </aside>
 
     <script>
+        // Scroll Progress Bar
+        (function() {
+            const bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            window.addEventListener('scroll', function() {
+                const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+                bar.style.width = progress + '%';
+            });
+        })();
+
         // Smooth scroll with header offset
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {

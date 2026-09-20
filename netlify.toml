@@ -1,6 +1,18 @@
 [build]
-  command = "echo 'No build step required'"
+  command = "echo 'Static site - no build required'"
   publish = "."
+
+[[functions]]
+  path = "/api/create-order"
+  function = "create-order"
+
+[[functions]]
+  path = "/api/initialize-payment"
+  function = "initialize-payment"
+
+[[functions]]
+  path = "/api/webhook"
+  function = "webhook"
 
 [[headers]]
   for = "/*"

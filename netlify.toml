@@ -1,9 +1,6 @@
 [build]
-  command = "echo 'Static site - no build required'"
+  command = "echo 'No build step required'"
   publish = "."
-
-[[plugins]]
-  package = "@netlify/plugin-html-headers"
 
 [[headers]]
   for = "/*"
@@ -12,7 +9,6 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://wa.me; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://images.unsplash.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.netlify.app"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
 [[headers]]

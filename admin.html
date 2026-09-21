@@ -383,7 +383,7 @@
                         <div class="card-header"><h3>Product Categories</h3></div>
                         <div class="card-body">
                             <div class="chart-bars">
-                                ${['berets','bags','dresses','glasses','suits'].map(cat => {
+                                ${[...new Set(d.products.map(p=>p.category))].map(cat => {
                                     const count = d.products.filter(p=>p.category===cat).length;
                                     const height = count * 30;
                                     return `<div class="bar-group"><div class="bar" style="height:${Math.max(height,20)}px;background:var(--primary);opacity:${0.4+count*0.12}"></div><div class="bar-label">${cat}</div></div>`;
@@ -433,10 +433,27 @@
         function openAddProduct() {
             openModal('Add Product', `
                 <div class="form-group"><label>Product Name</label><input id="pName" placeholder="e.g., Embellished Fedora"></div>
-                <div class="form-group"><label>Category</label><select id="pCategory"><option value="berets">Berets & Caps</option><option value="bags">Bags & Purses</option><option value="dresses">Dresses & Tops</option><option value="glasses">Glasses & Tech</option><option value="suits">Suits & Blazers</option></select></div>
+                <div class="form-group"><label>Category</label>
+                    <select id="pCategory" onchange="toggleCustomCategory()">
+                        <option value="berets">Berets & Caps</option>
+                        <option value="bags">Bags & Purses</option>
+                        <option value="dresses">Dresses & Tops</option>
+                        <option value="glasses">Glasses & Tech</option>
+                        <option value="suits">Suits & Blazers</option>
+                        <option value="gift items">Gifts</option>
+                        <option value="__custom__">+ Add Custom Category</option>
+                    </select>
+                    <div id="customCategoryGroup" style="display:none;margin-top:8px">
+                        <input id="pCustomCategory" placeholder="Enter new category name" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem">
+                    </div>
+                </div>
                 <div class="form-group"><label>Price (₦)</label><input type="number" id="pPrice" placeholder="0"></div>
                 <div class="form-group"><label>Description</label><textarea id="pDesc" rows="3" placeholder="Describe the product..."></textarea></div>
-                <div class="form-group"><label>Image URL</label><input id="pImage" placeholder="https://..."></div>
+                <div class="form-group"><label>Product Image</label>
+                    <input type="file" id="pImageUpload" accept="image/*" style="padding:10px;border:2px dashed var(--border);border-radius:8px;width:100%;font-family:inherit;cursor:pointer">
+                    <small style="color:var(--light-text);font-size:0.8rem;display:block;margin-top:4px">Upload image (max 5MB)</small>
+                </div>
+                <div class="form-group"><label>Or Image URL</label><input id="pImage" placeholder="https://..."></div>
                 <div class="form-group"><label><input type="checkbox" id="pStock" checked> In Stock</label></div>
                 <div class="form-group"><label><input type="checkbox" id="pFeatured"> Featured</label></div>
             `, saveProduct);
@@ -448,26 +465,66 @@
             if (!p) return;
             openModal('Edit Product', `
                 <div class="form-group"><label>Product Name</label><input id="pName" value="${p.name}"></div>
-                <div class="form-group"><label>Category</label><select id="pCategory">${['berets','bags','dresses','glasses','suits'].map(c=>`<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Category</label>
+                    <select id="pCategory" onchange="toggleCustomCategory()">
+                        ${['berets','bags','dresses','glasses','suits','gift items'].map(c=>`<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('')}
+                        <option value="__custom__" ${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'selected':''}>+ ${p.category}</option>
+                        <option value="__custom__">+ Add Custom Category</option>
+                    </select>
+                    <div id="customCategoryGroup" style="display:${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'block':'none'};margin-top:8px">
+                        <input id="pCustomCategory" value="${p.category}" placeholder="Category name" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem">
+                    </div>
+                </div>
                 <div class="form-group"><label>Price (₦)</label><input type="number" id="pPrice" value="${p.price}"></div>
                 <div class="form-group"><label>Description</label><textarea id="pDesc" rows="3">${p.description||''}</textarea></div>
-                <div class="form-group"><label>Image URL</label><input id="pImage" value="${p.image||''}"></div>
+                <div class="form-group"><label>Current Image</label>${p.image?`<img src="${p.image}" alt="${p.name}" style="max-width:100px;max-height:100px;border-radius:6px;display:block;margin-bottom:8px">`:''}</div>
+                <div class="form-group"><label>New Image</label>
+                    <input type="file" id="pImageUpload" accept="image/*" style="padding:10px;border:2px dashed var(--border);border-radius:8px;width:100%;font-family:inherit;cursor:pointer">
+                    <small style="color:var(--light-text);font-size:0.8rem;display:block;margin-top:4px">Leave empty to keep current image</small>
+                </div>
+                <div class="form-group"><label>Or Image URL</label><input id="pImage" value="${p.image||''}"></div>
                 <div class="form-group"><label><input type="checkbox" id="pStock" ${p.stock?'checked':''}> In Stock</label></div>
                 <div class="form-group"><label><input type="checkbox" id="pFeatured" ${p.featured?'checked':''}> Featured</label></div>
             `, () => saveProduct(id));
+        }
+
+        function toggleCustomCategory() {
+            const sel = document.getElementById('pCategory');
+            if (!sel) return;
+            const group = document.getElementById('customCategoryGroup');
+            if (sel.value === '__custom__') { group.style.display = 'block'; } else { group.style.display = 'none'; }
         }
 
         function saveProduct(existingId) {
             const d = getData();
             const name = document.getElementById('pName').value.trim();
             if (!name) { toast('Product name is required','error'); return; }
+            const customCat = document.getElementById('pCustomCategory');
+            const category = document.getElementById('pCategory').value === '__custom__' && customCat ? customCat.value.trim() : document.getElementById('pCategory').value;
+            if (!category) { toast('Category is required','error'); return; }
+            const imageInput = document.getElementById('pImageUpload');
+            let image = document.getElementById('pImage').value.trim();
+            if (imageInput && imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    saveProductWithImage(existingId, name, category, e.target.result);
+                };
+                if (imageInput.files[0].size > 5 * 1024 * 1024) { toast('Image too large (max 5MB)','error'); return; }
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                saveProductWithImage(existingId, name, category, image);
+            }
+        }
+
+        function saveProductWithImage(existingId, name, category, image) {
+            const d = getData();
             const product = {
                 id: existingId || Date.now(),
                 name,
-                category: document.getElementById('pCategory').value,
+                category,
                 price: parseInt(document.getElementById('pPrice').value) || 0,
                 description: document.getElementById('pDesc').value.trim(),
-                image: document.getElementById('pImage').value.trim(),
+                image,
                 stock: document.getElementById('pStock').checked,
                 featured: document.getElementById('pFeatured').checked
             };
@@ -612,12 +669,43 @@
                         <div class="form-group"><label>WhatsApp Number (with country code)</label><input type="number" id="setWhatsapp" value="${s.whatsappNumber}"></div>
                         <div class="form-group"><label>Address</label><textarea id="setAddress" rows="2">${s.address}</textarea></div>
                         <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
+                        <h3 style="font-size:1rem;margin-bottom:12px;font-family:'Inter',sans-serif;color:var(--accent)"><i class="fas fa-users"></i> Sub-Admins</h3>
+                        <div id="subAdminList">${(s.subAdmins||[]).map((sa,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><div><strong>${sa.name}</strong><span style="font-size:0.8rem;color:var(--light-text);margin-left:8px">${sa.email}</span></div><button class="btn-delete" onclick="deleteSubAdmin(${i})" style="width:28px;height:28px;font-size:0.75rem"><i class="fas fa-trash"></i></button></div>`).join('')||'<p style="color:var(--light-text);font-size:0.85rem">No sub-admins yet</p>'}</div>
+                        <div style="margin-top:15px;padding:15px;background:var(--secondary);border-radius:8px">
+                            <div class="form-group" style="margin-bottom:10px"><label>Name</label><input id="saName" placeholder="Sub-admin name"></div>
+                            <div class="form-group" style="margin-bottom:10px"><label>Email</label><input type="email" id="saEmail" placeholder="sub@email.com"></div>
+                            <div class="form-group" style="margin-bottom:10px"><label>Password</label><input type="password" id="saPassword" placeholder="Min 6 chars"></div>
+                            <button class="btn btn-sm btn-info" onclick="addSubAdmin()"><i class="fas fa-user-plus"></i> Add Sub-Admin</button>
+                        </div>
+                        <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
                         <div class="form-group"><label>Change Password</label><input type="password" id="setOldPw" placeholder="Current password"></div>
                         <div class="form-group"><label>New Password</label><input type="password" id="setNewPw" placeholder="New password"></div>
                         <div class="form-group"><label>Confirm New Password</label><input type="password" id="setConfPw" placeholder="Confirm"></div>
                         <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
                     </div>
                 </div>`;
+        }
+
+        function addSubAdmin() {
+            const name = document.getElementById('saName').value.trim();
+            const email = document.getElementById('saEmail').value.trim();
+            const password = document.getElementById('saPassword').value;
+            if (!name || !email || !password) { toast('Fill all fields','error'); return; }
+            if (password.length < 6) { toast('Password too short (min 6 chars)','error'); return; }
+            const d = getData();
+            if (!d.settings.subAdmins) d.settings.subAdmins = [];
+            d.settings.subAdmins.push({ name, email, password: btoa(password), role: 'sub-admin', createdAt: new Date().toISOString() });
+            saveData(d);
+            renderSettings();
+            toast('Sub-admin added');
+        }
+
+        function deleteSubAdmin(index) {
+            const d = getData();
+            d.settings.subAdmins.splice(index, 1);
+            saveData(d);
+            renderSettings();
+            toast('Sub-admin removed','error');
         }
 
         async function saveSettings() {
@@ -643,6 +731,10 @@
             saveData(d);
             toast('Settings saved');
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('pageContent').innerHTML += '<footer style="text-align:center;padding:20px 0;margin-top:30px;color:var(--light-text);font-size:0.85rem;border-top:1px solid #eee">Developed with <i class="fas fa-heart" style="color:#e74c3c"></i> by <a href="https://linkedin.com/in/oluwasanmiadebowale" target="_blank" style="color:var(--accent);text-decoration:none">DeltaOS Core</a></footer>';
+        });
     </script>
 </body>
 </html>

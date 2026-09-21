@@ -148,8 +148,7 @@
 
         @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
 
-        .login-error { background:#fdedec; color:#c0392b; padding:10px; border-radius:6px; font-size:0.85rem; margin-bottom:15px; display:none; }
-        .dashboard-grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; }
+                .dashboard-grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; }
         @media(max-width:1024px) { .dashboard-grid { grid-template-columns:1fr; } }
     </style>
 </head>
@@ -159,7 +158,6 @@
             <div class="logo-icon"><i class="fas fa-gem"></i></div>
             <h1>De PricelessStones</h1>
             <p class="subtitle">Store Management Panel</p>
-            <div id="loginError" class="login-error"><i class="fas fa-exclamation-circle"></i> Invalid password. Please try again.</div>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="adminPassword">Access Password</label>
@@ -299,6 +297,14 @@
             document.getElementById('pageTitle').textContent = pages[page].title;
             pages[page].render();
             document.getElementById('sidebar').classList.remove('open');
+            const footer = document.getElementById('pageFooter');
+            if (!footer) {
+                const f = document.createElement('div');
+                f.id = 'pageFooter';
+                f.style.cssText = 'text-align:center;padding:20px 0;margin-top:30px;color:var(--light-text);font-size:0.85rem;border-top:1px solid #eee';
+                f.innerHTML = 'Developed with <i class="fas fa-heart" style="color:#e74c3c"></i> by <a href="https://linkedin.com/in/oluwasanmiadebowale" target="_blank" style="color:var(--accent);text-decoration:none">DeltaOS Core</a>';
+                document.getElementById('pageContent').appendChild(f);
+            }
             refreshSession();
         }
 
@@ -400,7 +406,6 @@
             const totalOrders = d.orders.length;
             const activeDiscounts = d.discounts.filter(x=>x.active).length;
             const revenue = d.products.reduce((s,p)=>s+p.price,0);
-            const last7 = d.orders.filter(o => { const diff = (new Date()-new Date(o.date))/(1000*60*60*24); return diff <= 7; });
 
             document.getElementById('pageContent').innerHTML = `
                 <div class="stats-grid">
@@ -540,8 +545,13 @@
             const name = nameEl.value.trim();
             if (!name) { toast('Product name is required','error'); return; }
             const customCat = document.getElementById('pCustomCategory');
-            const category = document.getElementById('pCategory').value === '__custom__' && customCat ? customCat.value.trim() : document.getElementById('pCategory').value;
-            if (!category) { toast('Category is required','error'); return; }
+            const catSelect = document.getElementById('pCategory');
+            let category = catSelect.value;
+            if (category === '__custom__' && customCat) {
+                category = customCat.value.trim();
+                if (!category) { toast('Custom category name is required','error'); return; }
+            }
+            if (!category || category === '__custom__') { toast('Category is required','error'); return; }
             const imageInput = document.getElementById('pImageUpload');
             let image = document.getElementById('pImage').value.trim();
             if (imageInput && imageInput.files && imageInput.files[0]) {
@@ -564,7 +574,7 @@
                     id: existingId || Date.now(),
                     name,
                     category,
-                    price: parseInt(document.getElementById('pPrice').value) || 0,
+                    price: Math.max(0, parseInt(document.getElementById('pPrice').value) || 0),
                     description: document.getElementById('pDesc').value.trim(),
                     image,
                     stock: document.getElementById('pStock').checked,
@@ -639,7 +649,7 @@
             if (!code || !document.getElementById('dValue').value) { toast('Fill all required fields','error'); return; }
             d.discounts.push({
                 id: Date.now(), code, type: document.getElementById('dType').value,
-                value: parseInt(document.getElementById('dValue').value),
+                value: Math.max(1, parseInt(document.getElementById('dValue').value) || 0),
                 minOrder: parseInt(document.getElementById('dMin').value)||0,
                 maxUses: parseInt(document.getElementById('dMax').value)||999,
                 used:0, active:true,
@@ -712,7 +722,7 @@
                         <div class="form-group"><label>Business Name</label><input id="setBiz" value="${s.businessName}"></div>
                         <div class="form-group"><label>Email</label><input type="email" id="setEmail" value="${s.email}"></div>
                         <div class="form-group"><label>Phone</label><input id="setPhone" value="${s.phone}"></div>
-                        <div class="form-group"><label>WhatsApp Number (with country code)</label><input type="number" id="setWhatsapp" value="${s.whatsappNumber}"></div>
+                        <div class="form-group"><label>WhatsApp Number (with country code)</label><input type="text" id="setWhatsapp" value="${s.whatsappNumber}" inputmode="numeric"></div>
                         <div class="form-group"><label>Address</label><textarea id="setAddress" rows="2">${s.address}</textarea></div>
                         <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
                         <h3 style="font-size:1rem;margin-bottom:12px;font-family:'Inter',sans-serif;color:var(--accent)"><i class="fas fa-users"></i> Sub-Admins</h3>
@@ -721,11 +731,25 @@
                             <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 10px"><i class="fas fa-shield-alt"></i> <strong>Admin password</strong> is managed via Netlify environment variable <code>ADMIN_PASSWORD</code>. Update it in your Netlify site settings.</p>
                         </div>
                         <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
+                        <button class="btn btn-sm btn-success" onclick="openAddSubAdmin()" style="margin-bottom:15px"><i class="fas fa-user-plus"></i> Add Sub-Admin</button>
+                        <div id="subAdminModal" class="modal-overlay"><div class="modal" style="width:450px">
+                            <div class="modal-header"><h3>Add Sub-Admin</h3><button class="modal-close" onclick="document.getElementById('subAdminModal').classList.remove('active')"><i class="fas fa-times"></i></button></div>
+                            <div class="modal-body">
+                                <div class="form-group"><label>Name</label><input id="saName" placeholder="Full name"></div>
+                                <div class="form-group"><label>Email</label><input type="email" id="saEmail" placeholder="email@example.com"></div>
+                                <div class="form-group"><label>Password</label><input type="password" id="saPassword" placeholder="Min 6 characters"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-sm" onclick="document.getElementById('subAdminModal').classList.remove('active')" style="background:#eee;color:#555">Cancel</button>
+                                <button class="btn btn-sm btn-success" onclick="addSubAdmin()"><i class="fas fa-plus"></i> Add</button>
+                            </div>
+                        </div></div>
                         <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
                     </div>
                 </div>`;
         }
 
+        function openAddSubAdmin() { document.getElementById('subAdminModal').classList.add('active'); }
         function addSubAdmin() {
             const name = document.getElementById('saName').value.trim();
             const email = document.getElementById('saEmail').value.trim();
@@ -758,15 +782,14 @@
             s.businessName = document.getElementById('setBiz').value;
             s.email = document.getElementById('setEmail').value;
             s.phone = document.getElementById('setPhone').value;
-            s.whatsappNumber = parseInt(document.getElementById('setWhatsapp').value);
+            const waVal = document.getElementById('setWhatsapp').value.trim();
+            s.whatsappNumber = waVal ? parseInt(waVal) : null;
             s.address = document.getElementById('setAddress').value;
             saveData(d);
             toast('Settings saved');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('pageContent').innerHTML += '<footer style="text-align:center;padding:20px 0;margin-top:30px;color:var(--light-text);font-size:0.85rem;border-top:1px solid #eee">Developed with <i class="fas fa-heart" style="color:#e74c3c"></i> by <a href="https://linkedin.com/in/oluwasanmiadebowale" target="_blank" style="color:var(--accent);text-decoration:none">DeltaOS Core</a></footer>';
-        });
+        
     </script>
 </body>
 </html>

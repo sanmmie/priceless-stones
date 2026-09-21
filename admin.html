@@ -316,7 +316,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch {
+                    toast('Server unavailable. Please try again later.','error');
+                    return false;
+                }
                 if (!res.ok || !data.success) {
                     toast(data.error || 'Invalid password', 'error');
                     return false;

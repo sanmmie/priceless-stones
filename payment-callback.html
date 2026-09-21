@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment | De PricelessStones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .card { background:#fff; padding:48px; border-radius:16px; text-align:center; max-width:480px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.1); }
+        .icon { font-size:4rem; margin-bottom:20px; }
+        .icon.success { color:#27ae60; }
+        .icon.pending { color:#f39c12; }
+        .icon.error { color:#e74c3c; }
+        h1 { font-size:1.5rem; margin-bottom:10px; color:#2C3E50; }
+        p { color:#666; margin-bottom:8px; line-height:1.6; }
+        .ref { font-family:monospace; background:#f8f9fa; padding:8px 16px; border-radius:6px; font-size:0.9rem; margin:16px 0; display:inline-block; }
+        .btn { display:inline-flex; align-items:center; gap:8px; padding:14px 32px; background:linear-gradient(135deg,#2C3E50,#34495E); color:#fff; border:none; border-radius:8px; font-size:1rem; font-weight:500; cursor:pointer; text-decoration:none; margin-top:16px; transition:all .3s; }
+        .btn:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+        .spinner { display:inline-block; width:20px; height:20px; border:3px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .loader { margin-bottom:20px; }
+        .loader .spinner { width:40px; height:40px; border-width:4px; border-color:rgba(44,62,80,0.2); border-top-color:#2C3E50; margin:0 auto 16px; }
+        .details { text-align:left; margin-top:20px; padding:16px; background:#f8f9fa; border-radius:8px; }
+        .details dt { font-weight:600; font-size:0.85rem; color:#555; margin-top:8px; }
+        .details dd { margin:4px 0 0; color:#333; }
+    </style>
+</head>
+<body>
+    <div class="card" id="callbackCard">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Processing your payment...</p>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const reference = params.get('reference');
+        const status = params.get('status');
+        const orderId = params.get('orderId') || params.get('order_id');
+
+        const card = document.getElementById('callbackCard');
+        const siteUrl = 'https://pricelessstones.netlify.app';
+
+        if (status === 'success') {
+            card.innerHTML = `
+                <div class="icon success"><i class="fas fa-check-circle"></i></div>
+                <h1>Payment Successful</h1>
+                <p>Your order has been confirmed and is now being processed.</p>
+                <div class="ref">Reference: ${reference || 'N/A'}</div>
+                <p style="font-size:0.85rem;color:#999">Order ID: ${orderId || 'N/A'}</p>
+                <a href="${siteUrl}" class="btn"><i class="fas fa-shopping-bag"></i> Return to Store</a>
+                <div class="details">
+                    <dt>What happens next?</dt>
+                    <dd>You will receive a WhatsApp confirmation shortly.</dd>
+                    <dd>Your custom embellishment order is now in production.</dd>
+                </div>`;
+        } else if (status === 'failure') {
+            card.innerHTML = `
+                <div class="icon error"><i class="fas fa-times-circle"></i></div>
+                <h1>Payment Failed</h1>
+                <p>Your payment could not be processed. Please try again.</p>
+                <div class="ref">Reference: ${reference || 'N/A'}</div>
+                <a href="${siteUrl}/admin.html" class="btn"><i class="fas fa-redo"></i> Try Again</a>`;
+        } else if (status === 'pending') {
+            card.innerHTML = `
+                <div class="icon pending"><i class="fas fa-clock"></i></div>
+                <h1>Payment Pending</h1>
+                <p>Your payment is being processed. Please wait...</p>
+                <div class="ref">Reference: ${reference || 'N/A'}</div>
+                <meta http-equiv="refresh" content="5;url=${siteUrl}/payment-callback.html?reference=${reference}&status=success">`;
+        } else {
+            card.innerHTML = `
+                <div class="icon pending"><i class="fas fa-spinner fa-spin"></i></div>
+                <h1>Processing</h1>
+                <p>Please wait while we verify your payment...</p>
+                <meta http-equiv="refresh" content="3;url=${siteUrl}/payment-callback.html?reference=${reference}&status=success">`;
+        }
+    </script>
+</body>
+</html>

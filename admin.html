@@ -167,7 +167,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Sign In</button>
             </form>
-            <p style="margin-top:20px;font-size:0.8rem;color:#999">Default password: admin2025 (change after login)</p>
+            <p style="margin-top:20px;font-size:0.8rem;color:#999">Password is configured by the site administrator</p>
         </div>
     </div>
 
@@ -219,15 +219,8 @@
         // ============ DATA STORE ============
         const DB_KEY = 'dps_admin_data';
         const SESSION_KEY = 'dps_session';
-        const PASSWORD_HASH_KEY = 'dps_password_hash';
-        const DEFAULT_PASSWORD = 'admin2025';
-
-        async function sha256(message) {
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-        }
+        let sessionToken = localStorage.getItem('dps_session_token');
+        let sessionData = sessionToken ? JSON.parse(localStorage.getItem(SESSION_KEY) || 'null') : null;
 
         function getData() {
             const raw = localStorage.getItem(DB_KEY);
@@ -264,16 +257,7 @@
 
         function saveData(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
 
-        function getSession() { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }
-        function setSession(hash) { localStorage.setItem(SESSION_KEY, JSON.stringify({ hash, time: Date.now() })); }
-        function clearSession() { localStorage.removeItem(SESSION_KEY); }
-        function isSessionValid() {
-            const s = getSession();
-            if (!s) return false;
-            if (Date.now() - s.time > 30 * 60 * 1000) { clearSession(); return false; }
-            return true;
-        }
-        function refreshSession() { const s = getSession(); if (s) { s.time = Date.now(); localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } }
+        function refreshSession() { if (sessionData) { sessionData.time = Date.now(); localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData)); } }
 
         // ============ TOAST ============
         function toast(message, type='success') {
@@ -319,34 +303,70 @@
         document.getElementById('menuToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
 
         // ============ LOGIN ============
-        let passwordHash = localStorage.getItem(PASSWORD_HASH_KEY);
-        if (!passwordHash) { sha256(DEFAULT_PASSWORD).then(h => { localStorage.setItem(PASSWORD_HASH_KEY, h); }); }
+        async function doLogin(password) {
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    toast(data.error || 'Invalid password', 'error');
+                    return false;
+                }
+                sessionToken = data.token;
+                sessionData = { token: data.token, expires: data.expires, time: Date.now() };
+                localStorage.setItem('dps_session_token', data.token);
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                return true;
+            } catch (e) {
+                console.error('Login error:', e);
+                toast('Network error. Check your connection.','error');
+                return false;
+            }
+        }
 
         document.getElementById('loginForm').addEventListener('submit', async e => {
             e.preventDefault();
             const pw = document.getElementById('adminPassword').value;
-            const hash = await sha256(pw);
-            const stored = localStorage.getItem(PASSWORD_HASH_KEY);
-            if (hash === stored) {
-                setSession(hash);
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Signing in...';
+            const success = await doLogin(pw);
+            if (success) {
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('adminApp').style.display = 'block';
                 document.getElementById('lastLogin').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
                 navigate('dashboard');
                 toast('Welcome back, Admin!');
-            } else {
-                const err = document.getElementById('loginError');
-                err.style.display = 'block';
-                setTimeout(() => err.style.display = 'none', 3000);
             }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionToken = null;
+            sessionData = null;
+            localStorage.removeItem('dps_session_token');
+            localStorage.removeItem(SESSION_KEY);
             clearSession();
             document.getElementById('adminApp').style.display = 'none';
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('adminPassword').value = '';
         });
+
+        function isSessionValid() {
+            if (!sessionToken || !sessionData) return false;
+            if (Date.now() > sessionData.expires) { clearSession(); return false; }
+            return true;
+        }
+        function clearSession() {
+            sessionToken = null;
+            sessionData = null;
+            localStorage.removeItem('dps_session_token');
+            localStorage.removeItem(SESSION_KEY);
+        }
 
         if (!isSessionValid()) { clearSession(); }
         else { document.getElementById('loginPage').style.display = 'none'; document.getElementById('adminApp').style.display = 'block'; navigate('dashboard'); }
@@ -497,7 +517,8 @@
 
         function saveProduct(existingId) {
             const d = getData();
-            const name = document.getElementById('pName').value.trim();
+            const nameEl = document.getElementById('pName');
+            const name = nameEl.value.trim();
             if (!name) { toast('Product name is required','error'); return; }
             const customCat = document.getElementById('pCustomCategory');
             const category = document.getElementById('pCategory').value === '__custom__' && customCat ? customCat.value.trim() : document.getElementById('pCategory').value;
@@ -505,39 +526,45 @@
             const imageInput = document.getElementById('pImageUpload');
             let image = document.getElementById('pImage').value.trim();
             if (imageInput && imageInput.files && imageInput.files[0]) {
+                if (imageInput.files[0].size > 5 * 1024 * 1024) { toast('Image too large (max 5MB)','error'); return; }
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    saveProductWithImage(existingId, name, category, e.target.result);
+                    doSaveProduct(existingId, name, category, e.target.result);
                 };
-                if (imageInput.files[0].size > 5 * 1024 * 1024) { toast('Image too large (max 5MB)','error'); return; }
+                reader.onerror = function() { toast('Failed to read image','error'); };
                 reader.readAsDataURL(imageInput.files[0]);
             } else {
-                saveProductWithImage(existingId, name, category, image);
+                doSaveProduct(existingId, name, category, image);
             }
         }
 
-        function saveProductWithImage(existingId, name, category, image) {
-            const d = getData();
-            const product = {
-                id: existingId || Date.now(),
-                name,
-                category,
-                price: parseInt(document.getElementById('pPrice').value) || 0,
-                description: document.getElementById('pDesc').value.trim(),
-                image,
-                stock: document.getElementById('pStock').checked,
-                featured: document.getElementById('pFeatured').checked
-            };
-            if (existingId) {
-                const idx = d.products.findIndex(p => p.id === existingId);
-                if (idx !== -1) d.products[idx] = product;
-            } else {
-                d.products.push(product);
+        function doSaveProduct(existingId, name, category, image) {
+            try {
+                const d = getData();
+                const product = {
+                    id: existingId || Date.now(),
+                    name,
+                    category,
+                    price: parseInt(document.getElementById('pPrice').value) || 0,
+                    description: document.getElementById('pDesc').value.trim(),
+                    image,
+                    stock: document.getElementById('pStock').checked,
+                    featured: document.getElementById('pFeatured').checked
+                };
+                if (existingId) {
+                    const idx = d.products.findIndex(p => p.id === existingId);
+                    if (idx !== -1) d.products[idx] = product;
+                } else {
+                    d.products.push(product);
+                }
+                saveData(d);
+                closeModal();
+                renderProducts();
+                toast(existingId ? 'Product updated' : 'Product added');
+            } catch (e) {
+                console.error('Save error:', e);
+                toast('Failed to save product','error');
             }
-            saveData(d);
-            closeModal();
-            renderProducts();
-            toast(existingId ? 'Product updated' : 'Product added');
         }
 
         function deleteProduct(id) {
@@ -672,15 +699,9 @@
                         <h3 style="font-size:1rem;margin-bottom:12px;font-family:'Inter',sans-serif;color:var(--accent)"><i class="fas fa-users"></i> Sub-Admins</h3>
                         <div id="subAdminList">${(s.subAdmins||[]).map((sa,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><div><strong>${sa.name}</strong><span style="font-size:0.8rem;color:var(--light-text);margin-left:8px">${sa.email}</span></div><button class="btn-delete" onclick="deleteSubAdmin(${i})" style="width:28px;height:28px;font-size:0.75rem"><i class="fas fa-trash"></i></button></div>`).join('')||'<p style="color:var(--light-text);font-size:0.85rem">No sub-admins yet</p>'}</div>
                         <div style="margin-top:15px;padding:15px;background:var(--secondary);border-radius:8px">
-                            <div class="form-group" style="margin-bottom:10px"><label>Name</label><input id="saName" placeholder="Sub-admin name"></div>
-                            <div class="form-group" style="margin-bottom:10px"><label>Email</label><input type="email" id="saEmail" placeholder="sub@email.com"></div>
-                            <div class="form-group" style="margin-bottom:10px"><label>Password</label><input type="password" id="saPassword" placeholder="Min 6 chars"></div>
-                            <button class="btn btn-sm btn-info" onclick="addSubAdmin()"><i class="fas fa-user-plus"></i> Add Sub-Admin</button>
+                            <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 10px"><i class="fas fa-shield-alt"></i> <strong>Admin password</strong> is managed via Netlify environment variable <code>ADMIN_PASSWORD</code>. Update it in your Netlify site settings.</p>
                         </div>
                         <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
-                        <div class="form-group"><label>Change Password</label><input type="password" id="setOldPw" placeholder="Current password"></div>
-                        <div class="form-group"><label>New Password</label><input type="password" id="setNewPw" placeholder="New password"></div>
-                        <div class="form-group"><label>Confirm New Password</label><input type="password" id="setConfPw" placeholder="Confirm"></div>
                         <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
                     </div>
                 </div>`;
@@ -716,18 +737,6 @@
             s.phone = document.getElementById('setPhone').value;
             s.whatsappNumber = parseInt(document.getElementById('setWhatsapp').value);
             s.address = document.getElementById('setAddress').value;
-
-            const oldPw = document.getElementById('setOldPw').value;
-            const newPw = document.getElementById('setNewPw').value;
-            const confPw = document.getElementById('setConfPw').value;
-            if (oldPw || newPw || confPw) {
-                if (!oldPw || !newPw || !confPw) { toast('Fill all password fields','error'); return; }
-                if (newPw !== confPw) { toast('Passwords do not match','error'); return; }
-                const oldHash = await sha256(oldPw);
-                if (oldHash !== localStorage.getItem(PASSWORD_HASH_KEY)) { toast('Current password is wrong','error'); return; }
-                localStorage.setItem(PASSWORD_HASH_KEY, await sha256(newPw));
-            }
-
             saveData(d);
             toast('Settings saved');
         }

@@ -56,7 +56,7 @@
 
         /* Reset and Base Styles */
         * { margin:0; padding:0; box-sizing:border-box; }
-        html { scroll-behavior:smooth; scroll-padding-top:80px; }
+        html { scroll-behavior:smooth; scroll-padding-top:70px; }
         body {
             font-family: var(--font-body);
             color: var(--text);
@@ -1377,6 +1377,7 @@
     </aside>
 
     <script>
+        const CONFIG = { whatsappNumber: '2347036207517', siteName: 'De PricelessStones' };
         // Scroll Progress Bar
         (function() {
             const bar = document.getElementById('scrollProgress');
@@ -1488,7 +1489,7 @@
                 `*Project Description:*%0A${description}%0A%0A` +
                 `(Please attach images of your item when prompted)`;
             
-            const phoneNumber = 2347036207517;
+            const phoneNumber = CONFIG.whatsappNumber;
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${whatsappMessage}`;
             
             // Open WhatsApp and show feedback
@@ -1585,7 +1586,7 @@
             const total = getCartTotal();
             const items = cart.map(i => `${i.name} x${i.qty} = ₦${(i.price*i.qty).toLocaleString()}`).join('%0A');
             const msg = `*DE PRECIOUSSTONES ORDER*%0A%0A${items}%0A%0A*Total:* ₦${total.toLocaleString()}%0A%0APlease confirm and process my payment. Thank you!`;
-            window.open(`https://wa.me/2347036207517?text=${msg}`, '_blank');
+            window.open(`https://wa.me/${CONFIG.whatsappNumber}?text=${msg}`, '_blank');
             cart.forEach(() => {}); // keep cart for now
         });
 

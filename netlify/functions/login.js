@@ -7,15 +7,15 @@ exports.handler = async (event, context) => {
 
     try {
         const { password } = JSON.parse(event.body);
-        if (!password) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'Password required' }) };
+        if (!password || typeof password !== 'string' || password.length > 256) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid password' }) };
         }
 
         const adminPassword = process.env.ADMIN_PASSWORD;
         if (!adminPassword) {
             return {
                 statusCode: 500,
-                body: JSON.stringify({ error: 'Admin password not configured. Set ADMIN_PASSWORD env var.' })
+                body: JSON.stringify({ error: 'Server configuration error' })
             };
         }
 
@@ -23,7 +23,7 @@ exports.handler = async (event, context) => {
         const expectedHash = crypto.createHash('sha256').update(adminPassword).digest('hex');
 
         if (inputHash === expectedHash) {
-            const token = Buffer.from(`${Date.now()}:${Math.random().toString(36).slice(2)}`).toString('base64');
+            const token = crypto.randomBytes(32).toString('hex');
             return {
                 statusCode: 200,
                 body: JSON.stringify({ success: true, token, expires: Date.now() + 30 * 60 * 1000 })
@@ -32,6 +32,6 @@ exports.handler = async (event, context) => {
 
         return { statusCode: 401, body: JSON.stringify({ error: 'Invalid password' }) };
     } catch (e) {
-        return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+        return { statusCode: 500, body: JSON.stringify({ error: 'Authentication failed' }) };
     }
 };

@@ -216,6 +216,12 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // ============ SECURITY ============
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
         // ============ DATA STORE ============
         const DB_KEY = 'dps_admin_data';
         const SESSION_KEY = 'dps_session';
@@ -335,11 +341,12 @@
             btn.innerHTML = '<span class="spinner"></span> Signing in...';
             const success = await doLogin(pw);
             if (success) {
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('adminApp').style.display = 'block';
-                document.getElementById('lastLogin').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-                navigate('dashboard');
-                toast('Welcome back, Admin!');
+        document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('adminApp').style.display = 'block';
+            document.getElementById('adminApp').style.opacity = '1';
+            document.getElementById('lastLogin').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+            navigate('dashboard');
+            toast('Welcome back, Admin!');
             }
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
@@ -368,8 +375,15 @@
             localStorage.removeItem(SESSION_KEY);
         }
 
-        if (!isSessionValid()) { clearSession(); }
-        else { document.getElementById('loginPage').style.display = 'none'; document.getElementById('adminApp').style.display = 'block'; navigate('dashboard'); }
+        if (sessionToken && !isSessionValid()) { clearSession(); }
+        document.getElementById('adminApp').style.opacity = '0';
+        if (!isSessionValid()) {
+            document.getElementById('loginPage').style.display = 'flex';
+        } else {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('adminApp').style.opacity = '1';
+            navigate('dashboard');
+        }
 
         setInterval(() => { if (!isSessionValid()) { clearSession(); document.getElementById('adminApp').style.display = 'none'; document.getElementById('loginPage').style.display = 'flex'; toast('Session expired. Please sign in again.','error'); } }, 60000);
 
@@ -395,7 +409,7 @@
                         <div class="card-body">
                             <div class="table-wrap">
                                 <table><thead><tr><th>Customer</th><th>Item</th><th>Date</th><th>Status</th></tr></thead>
-                                <tbody>${d.orders.slice(-5).reverse().map(o => `<tr><td>${o.name}</td><td>${o.item}</td><td>${o.date}</td><td><span class="badge badge-${o.status==='completed'?'success':o.status==='processing'?'warning':'info'}">${o.status}</span></td></tr>`).join('')}</tbody></table>
+                                <tbody>${d.orders.slice(-5).reverse().map(o => `<tr><td>${escapeHTML(o.name)}</td><td>${escapeHTML(o.item)}</td><td>${escapeHTML(o.date)}</td><td><span class="badge badge-${o.status==='completed'?'success':o.status==='processing'?'warning':'info'}">${escapeHTML(o.status)}</span></td></tr>`).join('')}</tbody></table>
                             </div>
                         </div>
                     </div>
@@ -406,7 +420,7 @@
                                 ${[...new Set(d.products.map(p=>p.category))].map(cat => {
                                     const count = d.products.filter(p=>p.category===cat).length;
                                     const height = count * 30;
-                                    return `<div class="bar-group"><div class="bar" style="height:${Math.max(height,20)}px;background:var(--primary);opacity:${0.4+count*0.12}"></div><div class="bar-label">${cat}</div></div>`;
+                                    return `<div class="bar-group"><div class="bar" style="height:${Math.max(height,20)}px;background:var(--primary);opacity:${0.4+count*0.12}"></div><div class="bar-label">${escapeHTML(cat)}</div></div>`;
                                 }).join('')}
                             </div>
                         </div>
@@ -434,8 +448,8 @@
                         <div class="table-wrap">
                             ${filtered.length ? `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
                             <tbody>${filtered.map(p => `<tr>
-                                <td><strong>${p.name}</strong></td>
-                                <td><span class="badge badge-info">${p.category}</span></td>
+                                <td><strong>${escapeHTML(p.name)}</strong></td>
+                                <td><span class="badge badge-info">${escapeHTML(p.category)}</span></td>
                                 <td>₦${p.price.toLocaleString()}</td>
                                 <td><span class="badge badge-${p.stock?'success':'danger'}">${p.stock?'In Stock':'Out'}</span></td>
                                 <td><span class="badge badge-${p.featured?'warning':'info'}">${p.featured?'Yes':'No'}</span></td>
@@ -484,15 +498,15 @@
             const p = d.products.find(x => x.id === id);
             if (!p) return;
             openModal('Edit Product', `
-                <div class="form-group"><label>Product Name</label><input id="pName" value="${p.name}"></div>
+                <div class="form-group"><label>Product Name</label><input id="pName" value="${escapeHTML(p.name)}"></div>
                 <div class="form-group"><label>Category</label>
                     <select id="pCategory" onchange="toggleCustomCategory()">
                         ${['berets','bags','dresses','glasses','suits','gift items'].map(c=>`<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('')}
-                        <option value="__custom__" ${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'selected':''}>+ ${p.category}</option>
+                        <option value="__custom__" ${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'selected':''}>+ ${escapeHTML(p.category)}</option>
                         <option value="__custom__">+ Add Custom Category</option>
                     </select>
                     <div id="customCategoryGroup" style="display:${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'block':'none'};margin-top:8px">
-                        <input id="pCustomCategory" value="${p.category}" placeholder="Category name" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem">
+                        <input id="pCustomCategory" value="${escapeHTML(p.category)}" placeholder="Category name" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem">
                     </div>
                 </div>
                 <div class="form-group"><label>Price (₦)</label><input type="number" id="pPrice" value="${p.price}"></div>
@@ -586,11 +600,11 @@
                         <div class="table-wrap">
                             ${d.discounts.length ? `<table><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Active</th><th>Uses</th><th>Actions</th></tr></thead>
                             <tbody>${d.discounts.map(d2 => `<tr>
-                                <td><strong>${d2.code}</strong></td>
+                                <td><strong>${escapeHTML(d2.code)}</strong></td>
                                 <td>${d2.type==='percentage'?'%':'₦'}</td>
                                 <td>${d2.type==='percentage'?d2.value+'%':'₦'+d2.value.toLocaleString()}</td>
                                 <td>₦${d2.minOrder?.toLocaleString()||0}</td>
-                                <td><span class="badge badge-${d2.active?'success':'danger'}">${d2.active?'Active':'Paused'}</span></td>
+                                <td><span class="badge badge-${d2.active?'success':'danger'}">${escapeHTML(d2.active?'Active':'Paused')}</span></td>
                                 <td>${d2.used}/${d2.maxUses||'∞'}</td>
                                 <td class="actions">
                                     <button class="btn-edit" onclick="toggleDiscount(${d2.id})" title="${d2.active?'Pause':'Activate'}"><i class="fas fa-${d2.active?'pause':'play'}"></i></button>
@@ -652,18 +666,18 @@
                     <div class="card-body">
                         <div class="table-wrap">
                             ${d.orders.length ? `<table><thead><tr><th>Customer</th><th>Item</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody>${d.orders.slice().reverse().map(o => `<tr>
-                                <td><div><strong>${o.name}</strong></div><div style="font-size:0.8rem;color:#999">${o.email}</div></td>
-                                <td><span class="badge badge-info">${o.item}</span></td>
-                                <td>${o.date}</td>
-                                <td><select class="status-select" onchange="updateOrderStatus(${o.id},this.value)">
-                                    <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
-                                    <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
-                                    <option value="completed" ${o.status==='completed'?'selected':''}>Completed</option>
-                                    <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
-                                </select></td>
-                                <td><button class="btn-delete" onclick="deleteOrder(${o.id})"><i class="fas fa-trash"></i></button></td>
-                            </tr>`).join('')}</tbody></table>` : '<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>No orders yet.</p></div>'}
+                                <tbody>${d.orders.slice().reverse().map(o => `<tr>
+                                    <td><strong>${escapeHTML(o.name)}</strong><div style="font-size:0.8rem;color:#999">${escapeHTML(o.email)}</div></td>
+                                    <td><span class="badge badge-info">${escapeHTML(o.item)}</span></td>
+                                    <td>${escapeHTML(o.date)}</td>
+                                    <td><select class="status-select" onchange="updateOrderStatus(${o.id},this.value)">
+                                        <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+                                        <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
+                                        <option value="completed" ${o.status==='completed'?'selected':''}>Completed</option>
+                                        <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+                                    </select></td>
+                                    <td><button class="btn-delete" onclick="deleteOrder(${o.id})"><i class="fas fa-trash"></i></button></td>
+                                </tr>`).join('')}</tbody></table>` : '<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>No orders yet.</p></div>'}
                         </div>
                     </div>
                 </div>`;
@@ -697,7 +711,7 @@
                         <div class="form-group"><label>Address</label><textarea id="setAddress" rows="2">${s.address}</textarea></div>
                         <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
                         <h3 style="font-size:1rem;margin-bottom:12px;font-family:'Inter',sans-serif;color:var(--accent)"><i class="fas fa-users"></i> Sub-Admins</h3>
-                        <div id="subAdminList">${(s.subAdmins||[]).map((sa,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><div><strong>${sa.name}</strong><span style="font-size:0.8rem;color:var(--light-text);margin-left:8px">${sa.email}</span></div><button class="btn-delete" onclick="deleteSubAdmin(${i})" style="width:28px;height:28px;font-size:0.75rem"><i class="fas fa-trash"></i></button></div>`).join('')||'<p style="color:var(--light-text);font-size:0.85rem">No sub-admins yet</p>'}</div>
+                        <div id="subAdminList">${(s.subAdmins||[]).map((sa,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><div><strong>${escapeHTML(sa.name)}</strong><span style="font-size:0.8rem;color:var(--light-text);margin-left:8px">${escapeHTML(sa.email)}</span></div><button class="btn-delete" onclick="deleteSubAdmin(${i})" style="width:28px;height:28px;font-size:0.75rem"><i class="fas fa-trash"></i></button></div>`).join('')||'<p style="color:var(--light-text);font-size:0.85rem">No sub-admins yet</p>'}</div>
                         <div style="margin-top:15px;padding:15px;background:var(--secondary);border-radius:8px">
                             <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 10px"><i class="fas fa-shield-alt"></i> <strong>Admin password</strong> is managed via Netlify environment variable <code>ADMIN_PASSWORD</code>. Update it in your Netlify site settings.</p>
                         </div>
@@ -715,10 +729,14 @@
             if (password.length < 6) { toast('Password too short (min 6 chars)','error'); return; }
             const d = getData();
             if (!d.settings.subAdmins) d.settings.subAdmins = [];
-            d.settings.subAdmins.push({ name, email, password: btoa(password), role: 'sub-admin', createdAt: new Date().toISOString() });
-            saveData(d);
-            renderSettings();
-            toast('Sub-admin added');
+            crypto.subtle.digest('SHA-256', new TextEncoder().encode(password)).then(hash => {
+                const hashArray = Array.from(new Uint8Array(hash));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+                d.settings.subAdmins.push({ name, email, password: hashHex, role: 'sub-admin', createdAt: new Date().toISOString() });
+                saveData(d);
+                renderSettings();
+                toast('Sub-admin added');
+            });
         }
 
         function deleteSubAdmin(index) {

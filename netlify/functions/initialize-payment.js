@@ -5,10 +5,16 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  try {
-    const { email, amount, orderId, orderData } = JSON.parse(event.body);
+    try {
+        const { email, amount, orderId, orderData } = JSON.parse(event.body);
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid email' }) };
+        }
+        if (typeof amount !== 'number' || amount <= 0 || amount > 10000000) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid amount' }) };
+        }
 
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+        const secretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!secretKey) {
       return {
         statusCode: 500,

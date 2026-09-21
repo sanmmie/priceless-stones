@@ -5,9 +5,19 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  try {
-    const order = JSON.parse(event.body);
-    const orderId = 'DPS-' + Date.now().toString(36).toUpperCase();
+    try {
+        const order = JSON.parse(event.body);
+        if (!order || typeof order !== 'object') {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid order data' }) };
+        }
+        if (!order.name || typeof order.name !== 'string' || order.name.length > 100) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid name' }) };
+        }
+        if (!order.email || typeof order.email !== 'string' || !order.email.includes('@')) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid email' }) };
+        }
+
+        const orderId = 'DPS-' + Date.now().toString(36).toUpperCase();
     const timestamp = new Date().toISOString();
 
     const fullOrder = {
@@ -73,10 +83,11 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ success: true, orderId, message: 'Order created successfully' })
     };
   } catch (error) {
+    console.error('Create order error:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Failed to create order', message: error.message })
+      body: JSON.stringify({ error: 'Failed to create order' })
     };
   }
 };

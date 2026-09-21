@@ -114,9 +114,10 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ success: true })
     };
   } catch (error) {
+    console.error('Webhook error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Webhook processing failed', message: error.message })
+      body: JSON.stringify({ error: 'Webhook processing failed' })
     };
   }
 };

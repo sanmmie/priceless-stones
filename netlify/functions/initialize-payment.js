@@ -52,11 +52,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: 'Payment initialization failed',
-        message: error.response?.data?.message || error.message
-      })
+      body: JSON.stringify({ error: 'Payment initialization failed' })
     };
   }
 };

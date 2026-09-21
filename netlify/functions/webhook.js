@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const axios = require('axios');
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
@@ -39,11 +38,12 @@ exports.handler = async (event, context) => {
           const repo = 'sanmmie/priceless-stones';
           const path = 'netlify/functions/orders.json';
 
-          const getCurrent = await axios.get(`https://api.github.com/repos/${repo}/contents/${path}`, {
+          const getCurrent = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
             headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
           });
+          const currentData = await getCurrent.json();
 
-          const orders = JSON.parse(Buffer.from(getCurrent.data.content, 'base64').toString());
+          const orders = JSON.parse(Buffer.from(currentData.content, 'base64').toString());
           const orderIdx = orders.findIndex(o => o.id === orderId);
 
           if (orderIdx !== -1) {
@@ -51,12 +51,14 @@ exports.handler = async (event, context) => {
             orders[orderIdx].paymentMethod = 'Paystack';
             orders[orderIdx].paidAt = new Date().toISOString();
 
-            await axios.put(`https://api.github.com/repos/${repo}/contents/${path}`, {
-              message: `Update order ${orderId} to paid`,
-              content: Buffer.from(JSON.stringify(orders, null, 2)).toString('base64'),
-              sha: getCurrent.data.sha
-            }, {
-              headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: `Update order ${orderId} to paid`,
+                content: Buffer.from(JSON.stringify(orders, null, 2)).toString('base64'),
+                sha: currentData.sha
+              })
             });
           }
         } catch {
@@ -74,7 +76,7 @@ exports.handler = async (event, context) => {
         `Thank you for your order!`;
 
       try {
-        await axios.get(`https://wa.me/${whatsappNumber}?text=${confirmMessage}`, { timeout: 5000 });
+        await fetch(`https://wa.me/${whatsappNumber}?text=${confirmMessage}`, { signal: AbortSignal.timeout(5000) });
       } catch {}
     }
 
@@ -87,22 +89,25 @@ exports.handler = async (event, context) => {
           const repo = 'sanmmie/priceless-stones';
           const path = 'netlify/functions/orders.json';
 
-          const getCurrent = await axios.get(`https://api.github.com/repos/${repo}/contents/${path}`, {
+          const getCurrent = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
             headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
           });
+          const currentData = await getCurrent.json();
 
-          const orders = JSON.parse(Buffer.from(getCurrent.data.content, 'base64').toString());
+          const orders = JSON.parse(Buffer.from(currentData.content, 'base64').toString());
           const orderIdx = orders.findIndex(o => o.id === orderId);
 
           if (orderIdx !== -1) {
             orders[orderIdx].status = 'payment_failed';
 
-            await axios.put(`https://api.github.com/repos/${repo}/contents/${path}`, {
-              message: `Update order ${orderId} to payment_failed`,
-              content: Buffer.from(JSON.stringify(orders, null, 2)).toString('base64'),
-              sha: getCurrent.data.sha
-            }, {
-              headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: `Update order ${orderId} to payment_failed`,
+                content: Buffer.from(JSON.stringify(orders, null, 2)).toString('base64'),
+                sha: currentData.sha
+              })
             });
           }
         } catch {}

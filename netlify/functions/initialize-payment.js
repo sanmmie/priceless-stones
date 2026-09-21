@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -23,30 +21,32 @@ exports.handler = async (event, context) => {
     }
 
     // Initialize Paystack transaction
-    const response = await axios.post(
+    const response = await fetch(
       'https://api.paystack.co/transaction/initialize',
       {
-        email,
-        amount: Math.round(amount * 100), // Paystack expects amount in kobo (kobo = 1/100 Naira)
-        callback_url: `${process.env.SITE_URL || 'https://pricelessstones.netlify.app'}/payment-callback.html`,
-        metadata: { orderId, orderData: JSON.stringify(orderData || {}) }
-      },
-      {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${secretKey}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          email,
+          amount: Math.round(amount * 100),
+          callback_url: `${process.env.SITE_URL || 'https://pricelessstones.netlify.app'}/payment-callback.html`,
+          metadata: { orderId, orderData: JSON.stringify(orderData || {}) }
+        })
       }
     );
+    const responseData = await response.json();
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        authorization_url: response.data.data.authorization_url,
-        access_code: response.data.data.access_code,
-        reference: response.data.data.reference
+        authorization_url: responseData.data.authorization_url,
+        access_code: responseData.data.access_code,
+        reference: responseData.data.reference
       })
     };
   } catch (error) {

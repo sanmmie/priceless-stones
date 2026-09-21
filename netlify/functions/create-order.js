@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -29,7 +27,7 @@ exports.handler = async (event, context) => {
       createdAt: timestamp
     };
 
-    // Send WhatsApp notification
+    // Send WhatsApp notification (optional - requires WhatsApp Business API)
     const whatsappNumber = process.env.WHATSAPP_NUMBER || '2347036207517';
     const orderMessage =
       `*NEW ORDER #${orderId}*%0A` +
@@ -43,9 +41,8 @@ exports.handler = async (event, context) => {
       `*Description:*%0A${order.description || 'N/A'}%0A%0A` +
       `Review at: https://pricelessstones.netlify.app/admin.html`;
 
-    // Attempt WhatsApp notification (optional - requires WhatsApp Business API)
     try {
-      await axios.get(`https://wa.me/${whatsappNumber}?text=${orderMessage}`, { timeout: 5000 });
+      const whRes = await fetch(`https://wa.me/${whatsappNumber}?text=${orderMessage}`, { signal: AbortSignal.timeout(5000) });
     } catch {
       // WhatsApp notification failed (non-critical)
     }
@@ -56,21 +53,22 @@ exports.handler = async (event, context) => {
         const repo = 'sanmmie/priceless-stones';
         const path = 'netlify/functions/orders.json';
 
-        // Get current file
-        const getCurrent = await axios.get(`https://api.github.com/repos/${repo}/contents/${path}`, {
+        const getCurrent = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
           headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
         });
+        const currentData = await getCurrent.json();
 
-        const currentOrders = JSON.parse(Buffer.from(getCurrent.data.content, 'base64').toString());
+        const currentOrders = JSON.parse(Buffer.from(currentData.content, 'base64').toString());
         currentOrders.push(fullOrder);
 
-        // Update file
-        await axios.put(`https://api.github.com/repos/${repo}/contents/${path}`, {
-          message: `Add order ${orderId}`,
-          content: Buffer.from(JSON.stringify(currentOrders, null, 2)).toString('base64'),
-          sha: getCurrent.data.sha
-        }, {
-          headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+        await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Add order ${orderId}`,
+            content: Buffer.from(JSON.stringify(currentOrders, null, 2)).toString('base64'),
+            sha: currentData.sha
+          })
         });
       } catch {
         // GitHub storage failed (non-critical, order still processed)

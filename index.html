@@ -42,6 +42,8 @@
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
             --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
             --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.12);
+            --success: #27ae60;
+            --success-light: #eafaf1;
             --radius: 12px;
             --radius-sm: 8px;
             --radius-lg: 20px;
@@ -120,6 +122,13 @@
             background: var(--accent);
             color: var(--primary);
         }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: var(--primary);
+            border: none;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
         .submit-btn {
             width: 100%;
             padding: 15px;
@@ -1595,8 +1604,7 @@
         function showStep(step) {
             currentStep = step;
             document.querySelectorAll('.form-step').forEach(s => s.classList.toggle('active', s.dataset.step === String(step)));
-            document.querySelectorAll('.step-dot').forEach((d,i) => { d.classList.toggle('active', i < step); d.classList.toggle('done', i < step-1); d.classList.toggle('active', i === step-1); });
-            refreshSession();
+            document.querySelectorAll('.step-dot').forEach((d,i) => { d.classList.toggle('done', i < step-1); d.classList.toggle('active', i === step-1); });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -1638,16 +1646,35 @@
                 ];
                 // Wrap form in steps
                 const allGroups = contactForm.querySelectorAll('.form-group');
-                contactForm.innerHTML = '<div class="form-steps"><div class="step-indicator">' + steps.map((_,i)=>`<div class="step-dot ${i===0?'active':''}" data-step="${i+1}"></div>`).join('') + '</div>' + steps.map((s,i)=>`<div class="form-step ${i===0?'active':''}" data-step="${i+1}">${i===2?'<div class="cart-review"></div>':''}</div>`).join('') + '<div class="step-nav"><button class="btn-back" id="stepBack" style="display:none">Back</button><button type="submit" class="btn btn-primary" id="stepSubmit">Continue</button></div></div>';
-                // Distribute fields to steps
-                steps.forEach((s, si) => { s.fields.forEach(fieldName => { const g = allGroups[si*2] || allGroups[si]; if (g) { const step = document.querySelector(`.form-step[data-step="${si+1}"]`); if (step) step.insertBefore(g, step.querySelector('.step-nav')); } }); });
+                contactForm.innerHTML = '<div class="form-steps"><div class="step-indicator">' + steps.map((_,i)=>`<div class="step-dot ${i===0?'active':''}" data-step="${i+1}"></div>`).join('') + '</div>' + steps.map((s,i)=>`<div class="form-step ${i===0?'active':''}" data-step="${i+1}">${i===2?'<div class="cart-review"></div>':''}</div>`).join('') + '<div class="step-nav"><button class="btn-back" id="stepBack" style="display:none" type="button">Back</button><button type="button" class="btn btn-primary" id="stepSubmit">Continue</button></div></div>';
+                // Distribute fields to steps by matching input IDs
+                steps.forEach((s, si) => {
+                    s.fields.forEach(fieldName => {
+                        const input = contactForm.querySelector('#' + fieldName);
+                        if (input) {
+                            const group = input.closest('.form-group');
+                            const step = document.querySelector('.form-step[data-step="' + (si+1) + '"]');
+                            if (group && step) step.insertBefore(group, step.querySelector('.step-nav'));
+                        }
+                    });
+                });
                 // Add cart summary to step 3
                 const reviewDiv = document.querySelector('.cart-review');
                 if (reviewDiv) { reviewDiv.innerHTML = '<h3 style="margin-bottom:15px">Order Summary</h3><div id="reviewItems"></div>'; }
                 // Navigation
                 document.getElementById('stepBack').addEventListener('click', () => showStep(currentStep - 1));
                 document.getElementById('stepSubmit').addEventListener('click', function(e) {
-                    if (currentStep < 3) { showStep(currentStep + 1); if (currentStep === 2) { document.getElementById('reviewItems').innerHTML = '<p style="color:var(--light-text)">Add items to your cart above, then review here.</p>'; } }
+                    if (currentStep < 3) { 
+                        showStep(currentStep + 1); 
+                        if (currentStep === 2) { 
+                            const div = document.getElementById('reviewItems');
+                            if (div) div.innerHTML = '<p style="color:var(--light-text)">Add items to your cart above, then review here.</p>'; 
+                        } 
+                    } else {
+                        // On step 3, submit the order via WhatsApp
+                        const form = document.getElementById('orderForm');
+                        form.dispatchEvent(new Event('submit', {cancelable: true}));
+                    }
                 });
                 // Show cart in review
                 const reviewObs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting && currentStep === 3) { const cart = getCart(); const div = document.getElementById('reviewItems'); if (cart.length) { div.innerHTML = '<ul style="list-style:none">' + cart.map(i=>`<li style="padding:8px 0;border-bottom:1px solid #eee">${i.name} x${i.qty} — ₦${(i.price*i.qty).toLocaleString()}</li>`).join('') + '</ul><p style="font-weight:600;margin-top:10px">Total: ₦' + getCartTotal().toLocaleString() + '</p>'; } else { div.innerHTML = '<p style="color:var(--light-text)">No items in cart</p>'; } } }); }, {threshold:0.5});

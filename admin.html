@@ -503,7 +503,6 @@
                     <select id="pCategory" onchange="toggleCustomCategory()">
                         ${['berets','bags','dresses','glasses','suits','gift items'].map(c=>`<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('')}
                         <option value="__custom__" ${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'selected':''}>+ ${escapeHTML(p.category)}</option>
-                        <option value="__custom__">+ Add Custom Category</option>
                     </select>
                     <div id="customCategoryGroup" style="display:${!['berets','bags','dresses','glasses','suits','gift items'].includes(p.category)?'block':'none'};margin-top:8px">
                         <input id="pCustomCategory" value="${escapeHTML(p.category)}" placeholder="Category name" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem">
